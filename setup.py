@@ -28,6 +28,7 @@ setup(
             extra_compile_args={
                 "nvcc": [
                     "-I" + os.path.join(os.path.dirname(os.path.abspath(__file__)), "third_party/glm/"),
+                    "-lineinfo",  # for debugging with compute-sanitizer
                 ],
             },
         )
