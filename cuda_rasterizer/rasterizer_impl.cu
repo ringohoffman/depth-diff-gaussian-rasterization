@@ -100,9 +100,10 @@ __global__ void duplicateWithKeys(
 		{
 			for (int x = rect_min.x; x < rect_max.x; x++)
 			{
+				// why not just use uint2?
 				uint64_t key = y * grid.x + x;
 				key <<= 32;
-				key |= *((uint32_t*)&depths[idx]);
+				key |= *((uint16_t*)&depths[idx]);
 				gaussian_keys_unsorted[off] = key;
 				gaussian_values_unsorted[off] = idx;
 				off++;
