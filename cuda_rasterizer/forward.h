@@ -17,32 +17,33 @@
 #include "device_launch_parameters.h"
 #define GLM_FORCE_CUDA
 #include <glm/glm.hpp>
+#include "bfloat1616.h"
 
 namespace FORWARD
 {
 	// Perform initial steps for each Gaussian prior to rasterization.
 	void preprocess(int P, int D, int M,
-		const float* orig_points,
-		const glm::vec3* scales,
-		const float scale_modifier,
-		const glm::vec4* rotations,
-		const float* opacities,
-		const float* shs,
+		const bfloat16* orig_points,
+		const glm::bfvec3* scales,
+		const bfloat16 scale_modifier,
+		const glm::bfvec4* rotations,
+		const bfloat16* opacities,
+		const bfloat16* shs,
 		bool* clamped,
-		const float* cov3D_precomp,
-		const float* colors_precomp,
-		const float* viewmatrix,
-		const float* projmatrix,
-		const glm::vec3* cam_pos,
+		const bfloat16* cov3D_precomp,
+		const bfloat16* colors_precomp,
+		const bfloat16* viewmatrix,
+		const bfloat16* projmatrix,
+		const glm::bfvec3* cam_pos,
 		const int W, int H,
-		const float focal_x, float focal_y,
-		const float tan_fovx, float tan_fovy,
+		const bfloat16 focal_x, bfloat16 focal_y,
+		const bfloat16 tan_fovx, bfloat16 tan_fovy,
 		int* radii,
-		float2* points_xy_image,
-		float* depths,
-		float* cov3Ds,
-		float* colors,
-		float4* conic_opacity,
+		bfloat162* points_xy_image,
+		bfloat16* depths,
+		bfloat16* cov3Ds,
+		bfloat16* colors,
+		bfloat164* conic_opacity,
 		const dim3 grid,
 		uint32_t* tiles_touched,
 		bool prefiltered);
@@ -53,15 +54,15 @@ namespace FORWARD
 		const uint2* ranges,
 		const uint32_t* point_list,
 		int W, int H,
-		const float2* points_xy_image,
-		const float* features,
-		const float* depths,
-		const float4* conic_opacity,
-		float* final_T,
+		const bfloat162* points_xy_image,
+		const bfloat16* features,
+		const bfloat16* depths,
+		const bfloat164* conic_opacity,
+		bfloat16* final_T,
 		uint32_t* n_contrib,
-		const float* bg_color,
-		float* out_color,
-		float* out_depth);
+		const bfloat16* bg_color,
+		bfloat16* out_color,
+		bfloat16* out_depth);
 }
 
 

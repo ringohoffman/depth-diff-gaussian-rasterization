@@ -58,12 +58,12 @@ class _RasterizeGaussians(torch.autograd.Function):
 
         # Restructure arguments the way that the C++ lib expects them
         args = (
-            raster_settings.bg, 
+            raster_settings.bg,
             means3D,
             colors_precomp,
             opacities,
-            scales,
-            rotations,
+            scales,  # float64
+            rotations,  # float64
             raster_settings.scale_modifier,
             cov3Ds_precomp,
             raster_settings.viewmatrix,
@@ -72,7 +72,7 @@ class _RasterizeGaussians(torch.autograd.Function):
             raster_settings.tanfovy,
             raster_settings.image_height,
             raster_settings.image_width,
-            sh,
+            sh,  # float64
             raster_settings.sh_degree,
             raster_settings.campos,
             raster_settings.prefiltered,

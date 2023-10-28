@@ -17,6 +17,7 @@
 #include "device_launch_parameters.h"
 #define GLM_FORCE_CUDA
 #include <glm/glm.hpp>
+#include "bfloat1616.h"
 
 namespace BACKWARD
 {
@@ -25,41 +26,41 @@ namespace BACKWARD
 		const uint2* ranges,
 		const uint32_t* point_list,
 		int W, int H,
-		const float* bg_color,
-		const float2* means2D,
-		const float4* conic_opacity,
-		const float* colors,
-		const float* final_Ts,
+		const bfloat16* bg_color,
+		const bfloat162* means2D,
+		const bfloat164* conic_opacity,
+		const bfloat16* colors,
+		const bfloat16* final_Ts,
 		const uint32_t* n_contrib,
-		const float* dL_dpixels,
-		float3* dL_dmean2D,
-		float4* dL_dconic2D,
-		float* dL_dopacity,
-		float* dL_dcolors);
+		const bfloat16* dL_dpixels,
+		bfloat163* dL_dmean2D,
+		bfloat164* dL_dconic2D,
+		bfloat16* dL_dopacity,
+		bfloat16* dL_dcolors);
 
 	void preprocess(
 		int P, int D, int M,
-		const float3* means,
+		const bfloat163* means,
 		const int* radii,
-		const float* shs,
+		const bfloat16* shs,
 		const bool* clamped,
-		const glm::vec3* scales,
-		const glm::vec4* rotations,
-		const float scale_modifier,
-		const float* cov3Ds,
-		const float* view,
-		const float* proj,
-		const float focal_x, float focal_y,
-		const float tan_fovx, float tan_fovy,
-		const glm::vec3* campos,
-		const float3* dL_dmean2D,
-		const float* dL_dconics,
-		glm::vec3* dL_dmeans,
-		float* dL_dcolor,
-		float* dL_dcov3D,
-		float* dL_dsh,
-		glm::vec3* dL_dscale,
-		glm::vec4* dL_drot);
+		const glm::bfvec3* scales,
+		const glm::bfvec4* rotations,
+		const bfloat16 scale_modifier,
+		const bfloat16* cov3Ds,
+		const bfloat16* view,
+		const bfloat16* proj,
+		const bfloat16 focal_x, bfloat16 focal_y,
+		const bfloat16 tan_fovx, bfloat16 tan_fovy,
+		const glm::bfvec3* campos,
+		const bfloat163* dL_dmean2D,
+		const bfloat16* dL_dconics,
+		glm::bfvec3* dL_dmeans,
+		bfloat16* dL_dcolor,
+		bfloat16* dL_dcov3D,
+		bfloat16* dL_dsh,
+		glm::bfvec3* dL_dscale,
+		glm::bfvec4* dL_drot);
 }
 
 #endif

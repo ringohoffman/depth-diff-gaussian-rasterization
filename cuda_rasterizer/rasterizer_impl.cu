@@ -29,6 +29,7 @@ namespace cg = cooperative_groups;
 #include "auxiliary.h"
 #include "forward.h"
 #include "backward.h"
+#include "bfloat16.h"
 
 // Helper function to find the next-highest bit of the MSB
 // on the CPU.
@@ -52,16 +53,16 @@ uint32_t getHigherMsb(uint32_t n)
 // Wrapper method to call auxiliary coarse frustum containment test.
 // Mark all Gaussians that pass it.
 __global__ void checkFrustum(int P,
-	const float* orig_points,
-	const float* viewmatrix,
-	const float* projmatrix,
+	const bfloat16* orig_points,
+	const bfloat16* viewmatrix,
+	const bfloat16* projmatrix,
 	bool* present)
 {
 	auto idx = cg::this_grid().thread_rank();
 	if (idx >= P)
 		return;
 
-	float3 p_view;
+	bfloat163 p_view;
 	present[idx] = in_frustum(idx, orig_points, viewmatrix, projmatrix, false, p_view);
 }
 
@@ -69,8 +70,8 @@ __global__ void checkFrustum(int P,
 // Run once per Gaussian (1:N mapping).
 __global__ void duplicateWithKeys(
 	int P,
-	const float2* points_xy,
-	const float* depths,
+	const bfloat162* points_xy,
+	const bfloat16* depths,
 	const uint32_t* offsets,
 	uint64_t* gaussian_keys_unsorted,
 	uint32_t* gaussian_values_unsorted,
@@ -140,9 +141,9 @@ __global__ void identifyTileRanges(int L, uint64_t* point_list_keys, uint2* rang
 // Mark Gaussians as visible/invisible, based on view frustum testing
 void CudaRasterizer::Rasterizer::markVisible(
 	int P,
-	float* means3D,
-	float* viewmatrix,
-	float* projmatrix,
+	bfloat16* means3D,
+	bfloat16* viewmatrix,
+	bfloat16* projmatrix,
 	bool* present)
 {
 	checkFrustum << <(P + 255) / 256, 256 >> > (
@@ -200,28 +201,28 @@ int CudaRasterizer::Rasterizer::forward(
 	std::function<char* (size_t)> binningBuffer,
 	std::function<char* (size_t)> imageBuffer,
 	const int P, int D, int M,
-	const float* background,
+	const bfloat16* background,
 	const int width, int height,
-	const float* means3D,
-	const float* shs,
-	const float* colors_precomp,
-	const float* opacities,
-	const float* scales,
-	const float scale_modifier,
-	const float* rotations,
-	const float* cov3D_precomp,
-	const float* viewmatrix,
-	const float* projmatrix,
-	const float* cam_pos,
-	const float tan_fovx, float tan_fovy,
+	const bfloat16* means3D,
+	const bfloat16* shs,
+	const bfloat16* colors_precomp,
+	const bfloat16* opacities,
+	const bfloat16* scales,
+	const bfloat16 scale_modifier,
+	const bfloat16* rotations,
+	const bfloat16* cov3D_precomp,
+	const bfloat16* viewmatrix,
+	const bfloat16* projmatrix,
+	const bfloat16* cam_pos,
+	const bfloat16 tan_fovx, bfloat16 tan_fovy,
 	const bool prefiltered,
-	float* out_color,
-	float* out_depth,
+	bfloat16* out_color,
+	bfloat16* out_depth,
 	int* radii,
 	bool debug)
 {
-	const float focal_y = height / (2.0f * tan_fovy);
-	const float focal_x = width / (2.0f * tan_fovx);
+	const bfloat16 focal_y = __int2bfloat16_rn(height) / (__float2bfloat16(2.0f) * tan_fovy);
+	const bfloat16 focal_x = __int2bfloat16_rn(width) / (__float2bfloat16(2.0f) * tan_fovx);
 
 	size_t chunk_size = required<GeometryState>(P);
 	char* chunkptr = geometryBuffer(chunk_size);
@@ -249,16 +250,16 @@ int CudaRasterizer::Rasterizer::forward(
 	CHECK_CUDA(FORWARD::preprocess(
 		P, D, M,
 		means3D,
-		(glm::vec3*)scales,
+		(glm::bfvec3*)scales,
 		scale_modifier,
-		(glm::vec4*)rotations,
+		(glm::bfvec4*)rotations,
 		opacities,
 		shs,
 		geomState.clamped,
 		cov3D_precomp,
 		colors_precomp,
 		viewmatrix, projmatrix,
-		(glm::vec3*)cam_pos,
+		(glm::bfvec3*)cam_pos,
 		width, height,
 		focal_x, focal_y,
 		tan_fovx, tan_fovy,
@@ -319,7 +320,7 @@ int CudaRasterizer::Rasterizer::forward(
 	CHECK_CUDA(, debug)
 
 	// Let each tile blend its range of Gaussians independently in parallel
-	const float* feature_ptr = colors_precomp != nullptr ? colors_precomp : geomState.rgb;
+	const bfloat16* feature_ptr = colors_precomp != nullptr ? colors_precomp : geomState.rgb;
 	CHECK_CUDA(FORWARD::render(
 		tile_grid, block,
 		imgState.ranges,
@@ -342,33 +343,33 @@ int CudaRasterizer::Rasterizer::forward(
 // to forward render pass
 void CudaRasterizer::Rasterizer::backward(
 	const int P, int D, int M, int R,
-	const float* background,
+	const bfloat16* background,
 	const int width, int height,
-	const float* means3D,
-	const float* shs,
-	const float* colors_precomp,
-	const float* scales,
-	const float scale_modifier,
-	const float* rotations,
-	const float* cov3D_precomp,
-	const float* viewmatrix,
-	const float* projmatrix,
-	const float* campos,
-	const float tan_fovx, float tan_fovy,
+	const bfloat16* means3D,
+	const bfloat16* shs,
+	const bfloat16* colors_precomp,
+	const bfloat16* scales,
+	const bfloat16 scale_modifier,
+	const bfloat16* rotations,
+	const bfloat16* cov3D_precomp,
+	const bfloat16* viewmatrix,
+	const bfloat16* projmatrix,
+	const bfloat16* campos,
+	const bfloat16 tan_fovx, bfloat16 tan_fovy,
 	const int* radii,
 	char* geom_buffer,
 	char* binning_buffer,
 	char* img_buffer,
-	const float* dL_dpix,
-	float* dL_dmean2D,
-	float* dL_dconic,
-	float* dL_dopacity,
-	float* dL_dcolor,
-	float* dL_dmean3D,
-	float* dL_dcov3D,
-	float* dL_dsh,
-	float* dL_dscale,
-	float* dL_drot,
+	const bfloat16* dL_dpix,
+	bfloat16* dL_dmean2D,
+	bfloat16* dL_dconic,
+	bfloat16* dL_dopacity,
+	bfloat16* dL_dcolor,
+	bfloat16* dL_dmean3D,
+	bfloat16* dL_dcov3D,
+	bfloat16* dL_dsh,
+	bfloat16* dL_dscale,
+	bfloat16* dL_drot,
 	bool debug)
 {
 	GeometryState geomState = GeometryState::fromChunk(geom_buffer, P);
@@ -380,8 +381,8 @@ void CudaRasterizer::Rasterizer::backward(
 		radii = geomState.internal_radii;
 	}
 
-	const float focal_y = height / (2.0f * tan_fovy);
-	const float focal_x = width / (2.0f * tan_fovx);
+	const bfloat16 focal_y = __int2bfloat16_rn(height) / (__float2bfloat16(2.0f) * tan_fovy);
+	const bfloat16 focal_x = __int2bfloat16_rn(width) / (__float2bfloat16(2.0f) * tan_fovx);
 
 	const dim3 tile_grid((width + BLOCK_X - 1) / BLOCK_X, (height + BLOCK_Y - 1) / BLOCK_Y, 1);
 	const dim3 block(BLOCK_X, BLOCK_Y, 1);
@@ -389,7 +390,7 @@ void CudaRasterizer::Rasterizer::backward(
 	// Compute loss gradients w.r.t. 2D mean position, conic matrix,
 	// opacity and RGB of Gaussians from per-pixel loss gradients.
 	// If we were given precomputed colors and not SHs, use them.
-	const float* color_ptr = (colors_precomp != nullptr) ? colors_precomp : geomState.rgb;
+	const bfloat16* color_ptr = (colors_precomp != nullptr) ? colors_precomp : geomState.rgb;
 	CHECK_CUDA(BACKWARD::render(
 		tile_grid,
 		block,
@@ -403,35 +404,35 @@ void CudaRasterizer::Rasterizer::backward(
 		imgState.accum_alpha,
 		imgState.n_contrib,
 		dL_dpix,
-		(float3*)dL_dmean2D,
-		(float4*)dL_dconic,
+		(bfloat163*)dL_dmean2D,
+		(bfloat164*)dL_dconic,
 		dL_dopacity,
 		dL_dcolor), debug)
 
 	// Take care of the rest of preprocessing. Was the precomputed covariance
 	// given to us or a scales/rot pair? If precomputed, pass that. If not,
 	// use the one we computed ourselves.
-	const float* cov3D_ptr = (cov3D_precomp != nullptr) ? cov3D_precomp : geomState.cov3D;
+	const bfloat16* cov3D_ptr = (cov3D_precomp != nullptr) ? cov3D_precomp : geomState.cov3D;
 	CHECK_CUDA(BACKWARD::preprocess(P, D, M,
-		(float3*)means3D,
+		(bfloat163*)means3D,
 		radii,
 		shs,
 		geomState.clamped,
-		(glm::vec3*)scales,
-		(glm::vec4*)rotations,
+		(glm::bfvec3*)scales,
+		(glm::bfvec4*)rotations,
 		scale_modifier,
 		cov3D_ptr,
 		viewmatrix,
 		projmatrix,
 		focal_x, focal_y,
 		tan_fovx, tan_fovy,
-		(glm::vec3*)campos,
-		(float3*)dL_dmean2D,
+		(glm::bfvec3*)campos,
+		(bfloat163*)dL_dmean2D,
 		dL_dconic,
-		(glm::vec3*)dL_dmean3D,
+		(glm::bfvec3*)dL_dmean3D,
 		dL_dcolor,
 		dL_dcov3D,
 		dL_dsh,
-		(glm::vec3*)dL_dscale,
-		(glm::vec4*)dL_drot), debug)
+		(glm::bfvec3*)dL_dscale,
+		(glm::bfvec4*)dL_drot), debug)
 }
