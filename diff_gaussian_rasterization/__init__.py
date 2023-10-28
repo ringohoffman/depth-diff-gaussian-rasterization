@@ -8,15 +8,18 @@
 #
 # For inquiries contact  george.drettakis@inria.fr
 #
-
 from typing import NamedTuple
-import torch.nn as nn
+
 import torch
+from torch import nn
+
 from . import _C
+
 
 def cpu_deep_copy_tuple(input_tuple):
     copied_tensors = [item.cpu().clone() if isinstance(item, torch.Tensor) else item for item in input_tuple]
     return tuple(copied_tensors)
+
 
 def rasterize_gaussians(
     means3D,
@@ -41,6 +44,7 @@ def rasterize_gaussians(
         raster_settings,
     )
 
+
 class _RasterizeGaussians(torch.autograd.Function):
     @staticmethod
     def forward(
@@ -55,7 +59,6 @@ class _RasterizeGaussians(torch.autograd.Function):
         cov3Ds_precomp,
         raster_settings,
     ):
-
         # Restructure arguments the way that the C++ lib expects them
         args = (
             raster_settings.bg,
@@ -99,7 +102,6 @@ class _RasterizeGaussians(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_out_color, grad_radii, grad_depth):
-
         # Restore necessary values from context
         num_rendered = ctx.num_rendered
         raster_settings = ctx.raster_settings
@@ -154,6 +156,7 @@ class _RasterizeGaussians(torch.autograd.Function):
 
         return grads
 
+
 class GaussianRasterizationSettings(NamedTuple):
     image_height: int
     image_width: int 
@@ -167,6 +170,7 @@ class GaussianRasterizationSettings(NamedTuple):
     campos : torch.Tensor
     prefiltered : bool
     debug : bool
+
 
 class GaussianRasterizer(nn.Module):
     def __init__(self, raster_settings):
@@ -185,7 +189,6 @@ class GaussianRasterizer(nn.Module):
         return visible
 
     def forward(self, means3D, means2D, opacities, shs = None, colors_precomp = None, scales = None, rotations = None, cov3D_precomp = None):
-        
         raster_settings = self.raster_settings
 
         if (shs is None and colors_precomp is None) or (shs is not None and colors_precomp is not None):
@@ -218,4 +221,3 @@ class GaussianRasterizer(nn.Module):
             cov3D_precomp,
             raster_settings, 
         )
-
