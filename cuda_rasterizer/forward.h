@@ -17,7 +17,7 @@
 #include "device_launch_parameters.h"
 #define GLM_FORCE_CUDA
 #include <glm/glm.hpp>
-#include "bfloat1616.h"
+#include "bfloat16.h"
 
 namespace FORWARD
 {

@@ -15,7 +15,7 @@
 #include <vector>
 #include "rasterizer.h"
 #include <cuda_runtime_api.h>
-#include "bfloat1616.h"
+#include "bfloat16.h"
 
 namespace CudaRasterizer
 {
